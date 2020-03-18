@@ -1,0 +1,32 @@
+name: Daily statistics pull
+
+on:
+  schedule:
+    - cron: '25 17 * * *'
+
+jobs:
+  pull:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@master
+    - name: Set up Python 3.x
+      uses: actions/setup-python@v1
+      with:
+        python-version: '3.x'
+    - name: Display Python version
+      run: python -c "import sys; print(sys.version)"
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+    - name: Update statistical databases
+      run: python scraper.py
+    - name: Commit updates
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add data/*
+        git commit -m "Daily statistical databases update"
+    - name: GitHub Push
+      uses: ad-m/github-push-action@v0.5.0
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}

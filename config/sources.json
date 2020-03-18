@@ -1,0 +1,22 @@
+[
+    {
+        "user": "library",
+        "name": "redis"
+    },
+    {
+        "user": "library",
+        "name": "mongo"
+    },
+    {
+        "user": "library",
+        "name": "mysql"
+    },
+    {
+        "user": "library",
+        "name": "elasticsearch"
+    },
+    {
+        "user": "library",
+        "name": "cassandra"
+    }
+]
