@@ -2,7 +2,6 @@ name: Daily statistics pull
 
 on:
   push:
-  pull:
   schedule:
     - cron: '*/5 * * * *'
 
