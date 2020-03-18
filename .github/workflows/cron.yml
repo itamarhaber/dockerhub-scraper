@@ -2,7 +2,7 @@ name: Daily statistics pull
 
 on:
   schedule:
-    - cron: '25 17 * * *'
+    - cron: '*/5 * * * *'
 
 jobs:
   pull:
