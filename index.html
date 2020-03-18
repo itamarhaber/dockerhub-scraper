@@ -1,5 +1,57 @@
 <html>
+  <head>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  </head>
   <body>
-    TBD
+    <div id="app">
+      <v-app>
+        <v-content>
+          <v-container>
+            <v-row dense>
+              <v-col md="auto">
+                {{ stats }}
+              </v-col>
+            </v-row>
+          </v-container>
+        </v-content>
+      </v-app>
+    </div>
+
+    <script>
+      Vue.prototype.$http = axios;
+      let app = new Vue({
+        el: '#app',
+        vuetify: new Vuetify(),
+        components: {
+        },
+        data: () => {
+          return {
+            stats: {},
+          };
+        },
+        created: function () {
+          this.$http.get('config/sources.json')
+          .then((reply) => {
+            reply.data.forEach(source => {
+              this.$http.get(`data/${source['user']}/${source['name']}.json`)
+              .then((reply) => {
+                s = {};
+                s[`${source.user}/${source.name}`] = reply.data;
+                this.stats = Object.assign({}, this.stats, s)
+              })
+            });
+          })
+        },
+        computed: {
+        },
+        methods: {
+        },
+      });
+    </script>
   </body>
 </html>
