@@ -20,8 +20,13 @@ def init_db(user, name):
 
 def append_stats(user, name, pull_count, last_updated):
     path = init_db(user, name)
+    # !!! TODO: make the append w/o parsing the JSON
     with open(path, 'r') as f:
         j = json.load(f)
+    if len(j) > 0:
+        last = j[-1]['last_updated']
+        if last == last_updated:
+            return
     j.append({
         'pull_count': pull_count,
         'last_updated': last_updated,
