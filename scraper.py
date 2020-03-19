@@ -18,33 +18,46 @@ def init_db(user, name):
             json.dump([], f)
     return fullpath
 
-def append_stats(user, name, pull_count, last_updated):
+def append_stats(dt, user, name, pull_count, star_count):
     path = init_db(user, name)
     # !!! TODO: make the append w/o parsing the JSON
     with open(path, 'r') as f:
         j = json.load(f)
-    if len(j) > 0:
-        last = j[-1]['last_updated']
-        if last == last_updated:
-            return
     j.append({
+        'date': dt,
         'pull_count': pull_count,
-        'last_updated': last_updated,
+        'star_count': star_count,
     })
     with open(path, 'w') as f:
         json.dump(j, f)
 
 if __name__ == '__main__':
-    print(f'Starting run...')
+    sample = {
+        'timestamp': datetime.now().timestamp()
+    }
+    print(f'{sample["timestamp"]} Starting run...')
     with open('./config/sources.json', 'r') as f:
         sources = json.load(f)
 
     for source in sources:
         user = source['user']
         name = source['name']
+        fullname = f'{user}/{name}'
         j = get_stats(user, name)
-        pull_count = j['pull_count']
-        last_updated = j['last_updated']
-        append_stats(user, name, pull_count, last_updated)
+        sample[fullname] = j['pull_count']
+
+    # Init DB
+    datapath = './data/'
+    dbpath = f'{datapath}db.json'
+    Path(datapath).mkdir(parents=True, exist_ok=True)
+    if not Path(dbpath).exists():
+        with open(dbpath, 'w') as f:
+            json.dump([], f)
+    # !!! TODO: make the append w/o parsing the JSON
+    with open(dbpath, 'r') as f:
+        j = json.load(f)
+    j.append(sample)
+    with open(dbpath, 'w') as f:
+        json.dump(j, f)
 
     print('done.')
