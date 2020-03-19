@@ -18,5 +18,9 @@
     {
         "user": "library",
         "name": "cassandra"
+    },
+    {
+        "user": "library",
+        "name": "postgres"
     }
 ]
