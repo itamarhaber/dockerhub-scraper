@@ -3,7 +3,7 @@ name: Daily statistics pull
 on:
   push:
   schedule:
-    - cron: '6 3 * * *'
+    - cron: '*/15 * * * *'
 
 jobs:
   pull:
