@@ -1,26 +1,32 @@
 [
     {
         "user": "library",
-        "name": "redis"
+        "name": "redis",
+        "color": "#DC3912"
     },
     {
         "user": "library",
-        "name": "mongo"
+        "name": "mongo",
+        "color": "#109618"
     },
     {
         "user": "library",
-        "name": "mysql"
+        "name": "mysql",
+        "color": "#ff9900"
     },
     {
         "user": "library",
-        "name": "elasticsearch"
+        "name": "elasticsearch",
+        "color": "3366cc"
     },
     {
         "user": "library",
-        "name": "cassandra"
+        "name": "cassandra",
+        "color": "990099"
     },
     {
         "user": "library",
-        "name": "postgres"
+        "name": "postgres",
+        "color": "0099c6"
     }
 ]

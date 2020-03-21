@@ -6,11 +6,9 @@
     <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/numeral.js/2.0.6/numeral.min.js"></script>
     <script type='text/javascript' src='https://www.gstatic.com/charts/loader.js'></script>
-    <script type='text/javascript'>
-      google.charts.load('current', {'packages':['annotatedtimeline']});
-    </script>
-    </head>
+  </head>
   <body>
     <div id="app">
       <v-app>
@@ -18,7 +16,27 @@
           <v-container>
             <v-row dense>
               <v-col>
-                <div id="chart_div" style="width: 100%; height: 600px;"></div>
+                <h1>Daily Pulls from Docker Hub</h1>
+                {{ start ? start.toUTCString() : '...' }} - {{ end ? end.toUTCString() : '...' }}: {{ Number(days).toFixed() }} days
+              </v-col>
+              <v-col md="auto">
+                <v-btn small text v-for="b in buttons" :key="b.text" @click="zoom(b.level)">
+                  {{ b.text }}
+                </v-btn>
+              </v-col>
+            </v-row>
+            <v-row dense>
+              <v-col id="bar_chart">
+              </v-col>
+            </v-row>
+            <v-row dense>
+              <v-col id="timeline_chart">
+              </v-col>
+            </v-row>
+            <v-row dense>
+              <v-spacer></v-spacer>
+              <v-col md="auto">
+                <small>Last updated: {{ lastUpdated ? lastUpdated.toUTCString() : '...' }}</small>
               </v-col>
             </v-row>
           </v-container>
@@ -37,17 +55,40 @@
           return {
             db: [],
             data: {},
-            // sources: [],
-            // stats: [],
+            colors: {},
+            table: null,
+            images: [],
+            start: null,
+            end: null,
+            stats: null,
+            days: 0,
+            timeline: null,
+            bar: null,
+            buttons: [
+              {text: 'hour', level: 1000 * 60 * 60},
+              {text: 'day', level: 1000 * 60 * 60 * 24},
+              {text: 'week', level: 1000 * 60 * 60 * 24 * 7},
+              {text: 'month', level: 1000 * 60 * 60 * 24 * 30},
+              {text: 'quarter', level: 1000 * 60 * 60 * 24 * 30 * 3},
+              {text: 'year', level: 1000 * 60 * 60 * 24 * 30 * 12},
+              {text: 'all', level: 0},
+            ]
           };
         },
         mounted: function () {
-          this.$http.get('data/db.json').then((db) => {
+          this.$http.get('config/sources.json')
+          .then((sources) => {
+            sources.data.forEach(source => this.colors[`${source['user']}/${source['name']}`] = source['color']);
+         });
+
+          this.$http.get('data/db.json')
+          .then((db) => {
             this.db = db.data;
+            this.images = Object.keys(this.db.slice(-1)[0]).slice(1);
             const cols = Object.keys(this.db.slice(-1)[0]).map((col) => {
               return {
                 label: col,
-                type: (col == 'timestamp' ? 'date' : 'number'),
+                type: (col == 'timestamp' ? 'datetime' : 'number'),
               };
             });
             const rows = this.db.map((rowobj) => {
@@ -64,18 +105,85 @@
               cols,
               rows,
             };
-            google.charts.load('current', {'packages':['annotatedtimeline']});
+            // https://github.com/google/google-visualization-issues/issues/2794
+            google.charts.load('current', {
+              'packages': [
+                'annotatedtimeline',
+                'corechart',
+                'bar'
+              ]
+            });
             google.charts.setOnLoadCallback(this.drawChart);
           })
         },
         computed: {
+          lastUpdated: function () {
+            const last = this.db.slice(-1)[0];
+            if (last && 'timestamp' in last) {
+              return new Date (last['timestamp'] * 1000);
+            } else {
+              return null;
+            }
+          },
         },
         methods: {
+          zoom: function (level) {
+            if (level) {
+              this.start = new Date(this.end - level);
+            } else {
+              let {min, max} = this.table.getColumnRange(0);
+              this.start = min;
+              this.end = max
+            }
+            this.timeline.setVisibleChartRange(this.start, this.end);
+            this.dailyStats();
+          },
+          updateRange: function (e) {
+            this.start = e['start'];
+            this.end = e['end'];
+            this.dailyStats();
+          },
+          dailyStats: function () {
+            const view = new google.visualization.DataView(this.table);
+            view.setRows(view.getFilteredRows([
+              { column: 0, minValue: this.start, maxValue: this.end }
+            ]));
+            let {min, max} = view.getColumnRange(0);
+            this.days = (max-min) / (1000 * 60 * 60 * 24);
+            const data = this.images.map((image, index) => {
+              let {min, max} = view.getColumnRange(index+1);
+              const pulls = (max - min) / this.days;
+              this.stats.setCell(index, 1, pulls);
+              this.stats.setCell(index, 3, numeral(pulls).format('0.0a'));
+            });
+            this.bar.draw(this.stats, {
+              height: 250,
+              chartArea: {left:'10%', top:0,width:'100%',height:'100%'},
+              legend: { position: "none" },
+            });
+          },
           drawChart: function () {
-            const data = new google.visualization.DataTable(this.data);
-            const chart = new google.visualization.AnnotatedTimeLine(document.getElementById('chart_div'));
-            chart.draw(data, {displayAnnotations: false});
-          }
+            this.table = new google.visualization.DataTable(this.data);
+            this.timeline = new google.visualization.AnnotatedTimeLine(document.getElementById('timeline_chart'));
+            this.timeline.draw(this.table, {
+              displayAnnotations: true,
+              displayZoomButtons: false,
+              colors: this.images.map(i => this.colors[i]),
+            });
+            const r = this.timeline.getVisibleChartRange();
+            this.start = r['start'];
+            this.end = r['end'];
+            google.visualization.events.addListener(this.timeline, 'rangechange', this.updateRange);
+
+            let stats = [
+              ['', 'Pulls', { role: 'style' }, { role: 'annotation' } ],
+            ];
+            this.images.forEach(e => stats.push([e.split('/')[1], 0, this.colors[e], 'foobar']));
+            console.log(stats)
+            this.stats = new google.visualization.arrayToDataTable(stats);
+            this.bar = new google.visualization.BarChart(document.getElementById('bar_chart'));
+            this.zoom(1000 * 60 * 60 * 24);
+          },
         },
       });
     </script>
