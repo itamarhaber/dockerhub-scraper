@@ -23,10 +23,5 @@
         "user": "library",
         "name": "cassandra",
         "color": "990099"
-    },
-    {
-        "user": "library",
-        "name": "postgres",
-        "color": "0099c6"
     }
 ]
