@@ -14,7 +14,7 @@
       <v-app>
         <v-content>
           <v-container>
-            <v-row dense :align="'end'">
+            <v-row dense align="end">
               <v-col>
                 <h1>Daily Pulls from Docker Hub</h1>
                 {{ start ? start.toUTCString() : '...' }} - {{ end ? end.toUTCString() : '...' }} ({{ Number(days).toFixed() }} days)
