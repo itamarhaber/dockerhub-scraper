@@ -157,8 +157,8 @@
               this.stats.setCell(index, 3, numeral(pulls).format('0.0a'));
             });
             this.bar.draw(this.stats, {
-              height: 250,
-              chartArea: {left:'10%', top:0,width:'100%',height:'100%'},
+              height: 300,
+              chartArea: { left: '10%', top: 0, width: '100%', height: '90%' },
               legend: { position: "none" },
             });
           },
@@ -179,7 +179,6 @@
               ['', 'Pulls', { role: 'style' }, { role: 'annotation' } ],
             ];
             this.images.forEach(e => stats.push([e.split('/')[1], 0, this.colors[e], 'foobar']));
-            console.log(stats)
             this.stats = new google.visualization.arrayToDataTable(stats);
             this.bar = new google.visualization.BarChart(document.getElementById('bar_chart'));
             this.zoom(1000 * 60 * 60 * 24);
