@@ -14,10 +14,10 @@
       <v-app>
         <v-content>
           <v-container>
-            <v-row dense>
+            <v-row dense :align="'end'">
               <v-col>
                 <h1>Daily Pulls from Docker Hub</h1>
-                {{ start ? start.toUTCString() : '...' }} - {{ end ? end.toUTCString() : '...' }}: {{ Number(days).toFixed() }} days
+                {{ start ? start.toUTCString() : '...' }} - {{ end ? end.toUTCString() : '...' }} ({{ Number(days).toFixed() }} days)
               </v-col>
               <v-col md="auto">
                 <v-btn small text v-for="b in buttons" :key="b.text" @click="zoom(b.level)">
@@ -36,7 +36,7 @@
             <v-row dense>
               <v-spacer></v-spacer>
               <v-col md="auto">
-                <small>Last updated: {{ lastUpdated ? lastUpdated.toUTCString() : '...' }}</small>
+                <small>Last updated: {{ lastUpdated ? lastUpdated.toUTCString() : '...' }} (loaded in: {{ loadtime }}ms)</small>
               </v-col>
             </v-row>
           </v-container>
@@ -53,6 +53,7 @@
         },
         data: () => {
           return {
+            loadtime: 0,
             db: [],
             data: {},
             colors: {},
@@ -70,51 +71,52 @@
               {text: 'week', level: 1000 * 60 * 60 * 24 * 7},
               {text: 'month', level: 1000 * 60 * 60 * 24 * 30},
               {text: 'quarter', level: 1000 * 60 * 60 * 24 * 30 * 3},
-              {text: 'year', level: 1000 * 60 * 60 * 24 * 30 * 12},
               {text: 'all', level: 0},
             ]
           };
         },
         mounted: function () {
+          const now = new Date();
           this.$http.get('config/sources.json')
           .then((sources) => {
             sources.data.forEach(source => this.colors[`${source['user']}/${source['name']}`] = source['color']);
-         });
-
-          this.$http.get('data/db.json')
-          .then((db) => {
-            this.db = db.data;
-            this.images = Object.keys(this.db.slice(-1)[0]).slice(1);
-            const cols = Object.keys(this.db.slice(-1)[0]).map((col) => {
-              return {
-                label: col,
-                type: (col == 'timestamp' ? 'datetime' : 'number'),
-              };
-            });
-            const rows = this.db.map((rowobj) => {
-              const c = cols.map((col) => {
-                let v = rowobj[col['label']]
-                if (col['label'] == 'timestamp') {
-                  v = new Date(v * 1000);
-                }
-                return {v};
+            this.$http.get('data/db.json')
+            .then((db) => {
+              this.loadtime = new Date() - now;
+              this.db = db.data;
+              this.images = Object.keys(this.db.slice(-1)[0]).slice(1);
+              const cols = Object.keys(this.db.slice(-1)[0]).map((col) => {
+                return {
+                  label: col,
+                  type: (col == 'timestamp' ? 'datetime' : 'number'),
+                };
               });
-              return {c};
+              const rows = this.db.map((rowobj) => {
+                const c = cols.map((col) => {
+                  let v = rowobj[col['label']]
+                  if (col['label'] == 'timestamp') {
+                    v = new Date(v * 1000);
+                  }
+                  return {v};
+                });
+                return {c};
+              });
+              this.data = {
+                cols,
+                rows,
+              };
+              // https://github.com/google/google-visualization-issues/issues/2794
+              google.charts.load('current', {
+                'packages': [
+                  'annotatedtimeline',
+                  'corechart',
+                  'bar'
+                ]
+              });
+              google.charts.setOnLoadCallback(this.drawChart);
             });
-            this.data = {
-              cols,
-              rows,
-            };
-            // https://github.com/google/google-visualization-issues/issues/2794
-            google.charts.load('current', {
-              'packages': [
-                'annotatedtimeline',
-                'corechart',
-                'bar'
-              ]
-            });
-            google.charts.setOnLoadCallback(this.drawChart);
-          })
+          });
+
         },
         computed: {
           lastUpdated: function () {
